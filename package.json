@@ -1,5 +1,51 @@
 {
+  "name": "agentics-simulation-planner",
+  "version": "1.0.0",
+  "description": "Translates natural language organizational goals into deterministic SimulationPlan artifacts using ruvvector as the state substrate",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
+    "test:unit": "NODE_OPTIONS='--experimental-vm-modules' jest tests/unit",
+    "test:integration": "NODE_OPTIONS='--experimental-vm-modules' jest tests/integration",
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "agentics",
+    "simulation",
+    "planner",
+    "enterprise",
+    "deterministic",
+    "ruvvector"
+  ],
+  "author": "Agentics Platform Team",
+  "license": "MIT",
   "dependencies": {
-    "claude-flow": "^2.7.47"
-  }
+    "claude-flow": "^2.7.47",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }
