@@ -18,6 +18,9 @@ export * from './agent.js';
 // Integration types
 export * from './integration.js';
 
+// ERP Surface types
+export * from './erp-surface.js';
+
 // Constraint types
 export * from './constraint.js';
 

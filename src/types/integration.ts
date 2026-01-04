@@ -4,6 +4,7 @@
  */
 
 import type { UUID, Timestamp, MatchStatus, RepositoryStatus } from './common.js';
+import type { ERPSurfaceContract, ERPSurfaceReference, ERPIntegrationRequirement, ERPDomain } from './erp-surface.js';
 
 /** Capability definition */
 export interface Capability {
@@ -84,4 +85,47 @@ export interface IntegrationMap {
   readonly capabilityMatches: readonly CapabilityMatch[];
   readonly integrationContracts: readonly IntegrationContract[];
   readonly timestamp: Timestamp;
+
+  /**
+   * ERP surface contracts available for simulation planning.
+   * These represent abstract ERP capabilities that can be referenced
+   * without coupling to specific vendor implementations.
+   */
+  readonly erpSurfaces?: readonly ERPSurfaceContract[];
+
+  /**
+   * ERP surface references used by this integration.
+   * Maps simulation requirements to abstract ERP capabilities.
+   */
+  readonly erpReferences?: readonly ERPSurfaceReference[];
+
+  /**
+   * ERP integration requirements discovered during planning.
+   * Expresses what ERP capabilities the simulation needs.
+   */
+  readonly erpRequirements?: readonly ERPIntegrationRequirement[];
+}
+
+/**
+ * ERP Capability Match
+ * Result of matching simulation requirements to ERP surface capabilities
+ */
+export interface ERPCapabilityMatch {
+  /** Domain being matched */
+  readonly domain: ERPDomain;
+
+  /** Required capability name */
+  readonly requiredCapability: string;
+
+  /** Available ERP surfaces that provide this capability */
+  readonly availableSurfaces: readonly ERPSurfaceContract[];
+
+  /** Selected surface (if any) */
+  readonly selectedSurface?: ERPSurfaceContract;
+
+  /** Match status */
+  readonly status: MatchStatus;
+
+  /** Match confidence score (0-100) */
+  readonly confidenceScore: number;
 }
