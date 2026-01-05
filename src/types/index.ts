@@ -35,3 +35,15 @@ export * from './ruvvector.js';
 
 // Error types
 export * from './errors.js';
+
+// Simulation Scope types (targeting agentics-simulation-engine)
+export * from './simulation-scope.js';
+
+// Policy Input types (simulation configuration policies)
+export * from './policy-input.js';
+
+// Output Artifact types (downstream system artifacts)
+export * from './output-artifact.js';
+
+// Planner Boundary types (separation of concerns)
+export * from './planner-boundary.js';

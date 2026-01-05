@@ -16,6 +16,12 @@ export {
   type PlanningInput,
   type PlanningResult,
   type PlanningOptions,
+  // SimulationPlanBuilder for explicit plan construction
+  SimulationPlanBuilder,
+  createSimulationPlanBuilder,
+  extendSimulationPlan,
+  type SimulationPlanBuilderOptions,
+  type SimulationPlanBuildResult,
 } from './core/index.js';
 
 // Type exports

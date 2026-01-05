@@ -1,6 +1,13 @@
 /**
  * SimulationPlan type definitions
  * Defines the final output schema as per SimulationPlan JSON Schema v2.0.
+ *
+ * IMPORTANT: The SimulationPlan is a PLANNING artifact that describes
+ * WHAT should be simulated. It does NOT perform execution, ROI calculations,
+ * or ERP data normalization. Those are the responsibility of:
+ * - agentics-simulation-engine: Execution
+ * - analytics-service: ROI calculations
+ * - erp-adapter: ERP data normalization
  */
 
 import type {
@@ -12,6 +19,10 @@ import type {
   ExecutionNodeType,
   ExecutionEdgeType,
 } from './common.js';
+import type { SimulationScope, SimulationScopeValidation } from './simulation-scope.js';
+import type { PolicySet } from './policy-input.js';
+import type { OutputArtifactManifest } from './output-artifact.js';
+import type { ERPSurfaceReference, ERPIntegrationRequirement } from './erp-surface.js';
 
 /** SimulationPlan metadata */
 export interface SimulationPlanMetadata {
@@ -243,16 +254,98 @@ export interface AuditEntry {
   readonly objectiveCount?: number;
 }
 
-/** Complete SimulationPlan output */
+/**
+ * Target engine specification for the simulation plan.
+ * Explicitly declares which execution engine this plan is designed for.
+ */
+export interface TargetEngineSpec {
+  /**
+   * The target simulation engine identifier.
+   * Currently only 'agentics-simulation-engine' is supported.
+   */
+  readonly engine: 'agentics-simulation-engine';
+
+  /**
+   * Semantic version constraint for engine compatibility.
+   * @example '>=1.0.0 <2.0.0', '^1.5.0', '1.x'
+   */
+  readonly versionConstraint: string;
+
+  /**
+   * Required engine capabilities for this plan.
+   * The engine must support all listed capabilities.
+   */
+  readonly requiredCapabilities?: readonly string[];
+}
+
+/**
+ * Complete SimulationPlan output.
+ *
+ * This is the PRIMARY output of the agentics-simulation-planner.
+ * It describes WHAT should be simulated, including:
+ * - Simulation scope and boundaries
+ * - ERP surface dependencies
+ * - Policy inputs and constraints
+ * - Expected output artifacts
+ *
+ * The plan is consumed by agentics-simulation-engine for execution.
+ * The planner NEVER executes simulations, calculates ROI, or normalizes ERP data.
+ */
 export interface SimulationPlan {
   readonly version: string;
   readonly metadata: SimulationPlanMetadata;
+
+  /**
+   * Target engine specification.
+   * Explicitly declares which engine should execute this plan.
+   */
+  readonly targetEngine?: TargetEngineSpec;
+
+  /**
+   * Simulation scope definition.
+   * Defines what domains, capabilities, and time horizons are in scope.
+   */
+  readonly scope?: SimulationScope;
+
+  /**
+   * Scope validation results.
+   * Contains the validation status and complexity estimate.
+   */
+  readonly scopeValidation?: SimulationScopeValidation;
+
   readonly objectives: readonly SimulationObjective[];
   readonly agents: readonly SerializedAgent[];
   readonly constraints: SimulationConstraints;
   readonly execution: ExecutionConfig;
   readonly workflows?: readonly SerializedWorkflow[];
   readonly integrations?: readonly SerializedIntegration[];
+
+  /**
+   * ERP surface references.
+   * Explicitly declares which ERP surfaces this simulation depends on.
+   * These are abstract references - actual ERP data is fetched by erp-adapter.
+   */
+  readonly erpSurfaces?: readonly ERPSurfaceReference[];
+
+  /**
+   * ERP integration requirements.
+   * Detailed requirements for ERP data needed by the simulation.
+   */
+  readonly erpRequirements?: readonly ERPIntegrationRequirement[];
+
+  /**
+   * Policy inputs that govern simulation behavior.
+   * Policies are evaluated during planning, not execution.
+   */
+  readonly policies?: PolicySet;
+
+  /**
+   * Output artifact manifest.
+   * Describes what artifacts the simulation will produce for downstream systems.
+   * The planner describes artifacts; the engine generates them.
+   */
+  readonly outputArtifacts?: OutputArtifactManifest;
+
   readonly executionGraph?: ExecutionGraph;
   readonly resourceRequirements?: AggregatedResourceRequirements;
   readonly validationStatus?: SimulationValidationStatus;
