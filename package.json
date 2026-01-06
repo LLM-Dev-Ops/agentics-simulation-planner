@@ -27,7 +27,6 @@
   "author": "Agentics Platform Team",
   "license": "MIT",
   "dependencies": {
-    "claude-flow": "^2.7.47",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

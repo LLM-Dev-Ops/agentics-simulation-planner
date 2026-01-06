@@ -1,0 +1,11 @@
+.git
+.gitignore
+node_modules
+dist
+.claude
+.claude-flow
+.swarm
+*.md
+tests
+jest.config.js
+plans
