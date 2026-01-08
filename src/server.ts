@@ -1,22 +1,48 @@
 /**
  * HTTP Server for Agentics Simulation Planner
  * Exposes /v1/plans endpoint for Cloud Run deployment
+ *
+ * IMPORTANT: All requests are validated against @agentics/contracts
+ * BEFORE any planning operations begin.
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { planSimulation, createMinimalContext, type PlanningInput, type PlanningOptions } from './core/planner.js';
+import {
+  planSimulationWithContract,
+  type ContractPlanningInput,
+} from './core/planner.js';
+import {
+  parseAndValidateRequest,
+  ContractValidationError,
+  createValidationFailureProof,
+  type ContractValidationResult,
+  type ExecutionProof,
+} from './contracts/index.js';
+import { getCurrentTimestampUTC } from './utils/text.js';
+import { SCHEMA_VERSION } from './contracts/validator.js';
 
 const PORT = parseInt(process.env['PORT'] || '8080', 10);
 
-interface RequestBody {
-  intent: string;
-  organizationName?: string;
-  organizationId?: string;
-  seed?: string;
-  namespace?: string;
+/**
+ * Response format for planning endpoints.
+ * ALL responses include execution proof and validation result.
+ */
+interface PlanningResponse {
+  success: boolean;
+  plan?: unknown;
+  sessionId?: string;
+  contentHash?: string;
+  processingTimeMs?: number;
+  error?: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+  executionProof: ExecutionProof;
+  validationResult: ContractValidationResult;
 }
 
-function parseBody(req: IncomingMessage): Promise<RequestBody> {
+function parseBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', (chunk: Buffer) => {
@@ -40,49 +66,131 @@ function sendJSON(res: ServerResponse, status: number, data: unknown): void {
 
 async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (req.method !== 'POST') {
-    sendJSON(res, 405, { error: 'Method not allowed', allowed: ['POST'] });
+    // Even method errors include a minimal execution proof
+    const proof = createValidationFailureProof(
+      { method: req.method },
+      [{ path: '/method', message: 'Method not allowed' }]
+    );
+    const response: PlanningResponse = {
+      success: false,
+      error: {
+        code: 'METHOD_NOT_ALLOWED',
+        message: 'Method not allowed',
+        details: { allowed: ['POST'] },
+      },
+      executionProof: proof,
+      validationResult: {
+        valid: false,
+        errors: [{ path: '/method', message: 'Method not allowed' }],
+        validatedAt: getCurrentTimestampUTC(),
+        schemaVersion: SCHEMA_VERSION,
+      },
+    };
+    sendJSON(res, 405, response);
+    return;
+  }
+
+  let rawBody: unknown;
+  try {
+    rawBody = await parseBody(req);
+  } catch {
+    const proof = createValidationFailureProof(
+      {},
+      [{ path: '/', message: 'Invalid JSON body' }]
+    );
+    const response: PlanningResponse = {
+      success: false,
+      error: {
+        code: 'INVALID_JSON',
+        message: 'Invalid JSON body',
+      },
+      executionProof: proof,
+      validationResult: {
+        valid: false,
+        errors: [{ path: '/', message: 'Invalid JSON body' }],
+        validatedAt: getCurrentTimestampUTC(),
+        schemaVersion: SCHEMA_VERSION,
+      },
+    };
+    sendJSON(res, 400, response);
     return;
   }
 
   try {
-    const body = await parseBody(req);
+    // Contract validation happens FIRST, before any planning
+    const validatedRequest = parseAndValidateRequest(rawBody);
 
-    if (!body.intent) {
-      sendJSON(res, 400, { error: 'Missing required field: intent' });
-      return;
-    }
-
-    // Create organizational context
-    const context = createMinimalContext(
-      body.organizationName || 'Default Organization',
-      body.organizationId
-    );
-
-    const input: PlanningInput = {
-      intent: body.intent,
-      context,
+    // Build the planning input from validated request
+    const input: ContractPlanningInput = {
+      intent: validatedRequest.intent,
+      organizationName: validatedRequest.organizationName,
+      organizationId: validatedRequest.organizationId,
+      config: validatedRequest.config,
+      scenario: validatedRequest.scenario,
     };
 
-    const options: PlanningOptions = {};
-    if (body.seed) {
-      (options as { seed?: string }).seed = body.seed;
-    }
-    if (body.namespace) {
-      (options as { namespace?: string }).namespace = body.namespace;
-    }
+    const options = {
+      seed: validatedRequest.seed,
+      namespace: validatedRequest.namespace,
+    };
 
-    const result = await planSimulation(input, options);
+    // Execute planning with contract enforcement
+    const result = await planSimulationWithContract(input, rawBody, options);
 
-    sendJSON(res, 200, {
+    const response: PlanningResponse = {
       success: true,
       plan: result.plan,
       sessionId: result.sessionId,
       contentHash: result.contentHash,
       processingTimeMs: result.processingTimeMs,
-    });
+      executionProof: result.executionProof,
+      validationResult: result.validationResult,
+    };
+
+    sendJSON(res, 200, response);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    sendJSON(res, 500, { error: message });
+    // Handle contract validation errors specifically
+    if (error instanceof ContractValidationError) {
+      const proof = createValidationFailureProof(rawBody, error.errors);
+      const response: PlanningResponse = {
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.errors,
+        },
+        executionProof: proof,
+        validationResult: {
+          valid: false,
+          errors: error.errors,
+          validatedAt: error.validatedAt,
+          schemaVersion: SCHEMA_VERSION,
+        },
+      };
+      sendJSON(res, 400, response);
+      return;
+    }
+
+    // For other errors, still include execution proof
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    const proof = createValidationFailureProof(rawBody, [
+      { path: '/', message: errorMessage },
+    ]);
+    const response: PlanningResponse = {
+      success: false,
+      error: {
+        code: 'PLANNING_ERROR',
+        message: errorMessage,
+      },
+      executionProof: proof,
+      validationResult: {
+        valid: true, // Request was valid, but planning failed
+        errors: [],
+        validatedAt: getCurrentTimestampUTC(),
+        schemaVersion: SCHEMA_VERSION,
+      },
+    };
+    sendJSON(res, 500, response);
   }
 }
 
@@ -117,4 +225,6 @@ server.listen(PORT, () => {
   console.log(`Endpoints:`);
   console.log(`  POST /v1/plans - Create simulation plan`);
   console.log(`  GET  /health   - Health check`);
+  console.log(`Contract enforcement: ENABLED`);
+  console.log(`Schema version: ${SCHEMA_VERSION}`);
 });

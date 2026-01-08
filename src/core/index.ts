@@ -5,11 +5,14 @@
 
 export {
   planSimulation,
+  planSimulationWithContract,
   verifyDeterminism,
   createMinimalContext,
   type PlanningInput,
   type PlanningResult,
   type PlanningOptions,
+  type ContractPlanningInput,
+  type ContractPlanningResult,
 } from './planner.js';
 
 // SimulationPlanBuilder for explicit plan construction
