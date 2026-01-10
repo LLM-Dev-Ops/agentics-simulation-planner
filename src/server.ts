@@ -17,18 +17,40 @@ import {
   createValidationFailureProof,
   type ContractValidationResult,
   type ExecutionProof,
+  type ExecutionMetadata,
 } from './contracts/index.js';
 import { getCurrentTimestampUTC } from './utils/text.js';
 import { SCHEMA_VERSION } from './contracts/validator.js';
 
 const PORT = parseInt(process.env['PORT'] || '8080', 10);
+const PLANNER_VERSION = '1.0.0';
+
+/**
+ * Creates execution metadata for HTTP responses.
+ * Required at the root of all responses per agentics CLI contract.
+ */
+function createExecutionMetadata(
+  requestId: string,
+  processingTimeMs: number,
+  isSuccess: boolean
+): ExecutionMetadata {
+  return {
+    request_id: requestId,
+    timestamp: getCurrentTimestampUTC(),
+    service: 'agentics-simulation-planner',
+    version: PLANNER_VERSION,
+    processing_time_ms: processingTimeMs,
+    status: isSuccess ? 'success' : 'error',
+  };
+}
 
 /**
  * Response format for planning endpoints.
- * ALL responses include execution proof and validation result.
+ * ALL responses include execution_metadata, execution proof, and validation result.
  */
 interface PlanningResponse {
   success: boolean;
+  execution_metadata: ExecutionMetadata;
   plan?: unknown;
   sessionId?: string;
   contentHash?: string;
@@ -65,14 +87,18 @@ function sendJSON(res: ServerResponse, status: number, data: unknown): void {
 }
 
 async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const requestStartTime = Date.now();
+
   if (req.method !== 'POST') {
     // Even method errors include a minimal execution proof
     const proof = createValidationFailureProof(
       { method: req.method },
       [{ path: '/method', message: 'Method not allowed' }]
     );
+    const processingTimeMs = Date.now() - requestStartTime;
     const response: PlanningResponse = {
       success: false,
+      execution_metadata: createExecutionMetadata(proof.sessionId, processingTimeMs, false),
       error: {
         code: 'METHOD_NOT_ALLOWED',
         message: 'Method not allowed',
@@ -98,8 +124,10 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
       {},
       [{ path: '/', message: 'Invalid JSON body' }]
     );
+    const processingTimeMs = Date.now() - requestStartTime;
     const response: PlanningResponse = {
       success: false,
+      execution_metadata: createExecutionMetadata(proof.sessionId, processingTimeMs, false),
       error: {
         code: 'INVALID_JSON',
         message: 'Invalid JSON body',
@@ -139,6 +167,11 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
 
     const response: PlanningResponse = {
       success: true,
+      execution_metadata: createExecutionMetadata(
+        result.sessionId,
+        result.processingTimeMs,
+        true
+      ),
       plan: result.plan,
       sessionId: result.sessionId,
       contentHash: result.contentHash,
@@ -152,8 +185,10 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
     // Handle contract validation errors specifically
     if (error instanceof ContractValidationError) {
       const proof = createValidationFailureProof(rawBody, error.errors);
+      const processingTimeMs = Date.now() - requestStartTime;
       const response: PlanningResponse = {
         success: false,
+        execution_metadata: createExecutionMetadata(proof.sessionId, processingTimeMs, false),
         error: {
           code: error.code,
           message: error.message,
@@ -176,8 +211,10 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
     const proof = createValidationFailureProof(rawBody, [
       { path: '/', message: errorMessage },
     ]);
+    const processingTimeMs = Date.now() - requestStartTime;
     const response: PlanningResponse = {
       success: false,
+      execution_metadata: createExecutionMetadata(proof.sessionId, processingTimeMs, false),
       error: {
         code: 'PLANNING_ERROR',
         message: errorMessage,

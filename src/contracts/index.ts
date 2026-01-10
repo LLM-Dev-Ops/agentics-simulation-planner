@@ -31,6 +31,7 @@ export type {
   ExecutionProof,
   ContractPlanningResponse,
   ContractSchemaMetadata,
+  ExecutionMetadata,
 } from './types.js';
 
 // Validator

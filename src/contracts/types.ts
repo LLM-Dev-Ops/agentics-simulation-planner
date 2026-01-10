@@ -210,3 +210,16 @@ export interface ContractSchemaMetadata {
   readonly title: string;
   readonly description: string;
 }
+
+/**
+ * Execution metadata required at the root of all HTTP responses.
+ * This is the canonical format expected by the agentics CLI.
+ */
+export interface ExecutionMetadata {
+  readonly request_id: UUID;
+  readonly timestamp: Timestamp;
+  readonly service: 'agentics-simulation-planner';
+  readonly version: string;
+  readonly processing_time_ms: number;
+  readonly status: 'success' | 'error';
+}
