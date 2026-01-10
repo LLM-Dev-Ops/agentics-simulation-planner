@@ -62,21 +62,7 @@ function validateInput(input: IntentIngestionInput): void {
     });
   }
 
-  if (!input.organizationalContext) {
-    throw new ValidationError({
-      code: 'MISSING_CONTEXT',
-      message: 'Organizational context is required',
-      severity: 'FATAL',
-    });
-  }
-
-  if (!input.organizationalContext.organizationId) {
-    throw new ValidationError({
-      code: 'MISSING_ORG_ID',
-      message: 'Organization ID is required in context',
-      severity: 'FATAL',
-    });
-  }
+  // Organizational context is now optional - planner provides defaults if missing
 }
 
 /**
