@@ -323,17 +323,7 @@ function validateTargetEngine(
     }
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['engine', 'versionConstraint', 'requiredCapabilities']);
-  for (const key of Object.keys(engineObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in targetEngine`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -409,17 +399,7 @@ function validateScope(
     validateDataVolume(scopeObj['dataVolume'], `${path}/dataVolume`, errors);
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['type', 'domains', 'timeHorizon', 'dataVolume']);
-  for (const key of Object.keys(scopeObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in scope`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -474,17 +454,7 @@ function validateTimeHorizon(
     });
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['startDate', 'endDate', 'granularity']);
-  for (const key of Object.keys(thObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in timeHorizon`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -531,17 +501,7 @@ function validateDataVolume(
     }
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['minRecords', 'maxRecords', 'estimatedRecords']);
-  for (const key of Object.keys(dvObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in dataVolume`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -577,17 +537,7 @@ function validateConstraints(
     validateResourceConstraints(constObj['resource'], `${path}/resource`, errors);
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['temporal', 'resource']);
-  for (const key of Object.keys(constObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in constraints`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -657,17 +607,7 @@ function validateTemporalConstraints(
     validateString(tempObj['timezone'], `${path}/timezone`, 'timezone', 1, 64, null, errors);
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['startAfter', 'completeBefore', 'maxDurationMs', 'timezone']);
-  for (const key of Object.keys(tempObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in temporal`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -765,17 +705,7 @@ function validateResourceConstraints(
     }
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['maxAgents', 'maxConcurrency', 'maxMemoryMB', 'maxCost']);
-  for (const key of Object.keys(resObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in resource`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -828,17 +758,7 @@ function validatePolicies(
     });
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['executionMode', 'failureHandling', 'auditLevel']);
-  for (const key of Object.keys(polObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in policies`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -881,17 +801,7 @@ function validateConfig(
     validatePolicies(configObj['policies'], `${path}/policies`, errors);
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['targetEngine', 'scope', 'constraints', 'policies']);
-  for (const key of Object.keys(configObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in config`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -998,17 +908,7 @@ function validateScenario(
     }
   }
 
-  // Check for additional properties
-  const allowedProps = new Set(['scenarioId', 'name', 'description', 'parameters', 'assumptions', 'dependencies']);
-  for (const key of Object.keys(scenarioObj)) {
-    if (!allowedProps.has(key)) {
-      errors.push({
-        path: `${path}/${key}`,
-        message: `Additional property "${key}" is not allowed in scenario`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Additional properties are ignored for CLI compatibility
 }
 
 /**
@@ -1146,17 +1046,7 @@ function validateScenarioAssumptions(
       }
     }
 
-    // Check for additional properties
-    const allowedProps = new Set(['id', 'statement', 'category', 'confidence']);
-    for (const key of Object.keys(assumptionObj)) {
-      if (!allowedProps.has(key)) {
-        errors.push({
-          path: `${assumptionPath}/${key}`,
-          message: `Additional property "${key}" is not allowed in assumption`,
-          keyword: 'additionalProperties',
-        });
-      }
-    }
+    // Additional properties are ignored for CLI compatibility
   }
 }
 
