@@ -257,14 +257,15 @@ function validateTargetEngine(
 
   const engineObj = engine as Record<string, unknown>;
 
-  // Required: engine
-  if (!('engine' in engineObj)) {
-    errors.push({
-      path: `${path}/engine`,
-      message: 'Required field "engine" is missing in targetEngine',
-      keyword: 'required',
-    });
-  } else if (engineObj['engine'] !== 'agentics-simulation-engine') {
+  // CLI compatibility: if targetEngine is present but incomplete, skip validation.
+  // The planner will use defaults. Only intent is truly required.
+  if (!('engine' in engineObj) || !('versionConstraint' in engineObj)) {
+    // Incomplete targetEngine - skip validation, planner will handle defaults
+    return;
+  }
+
+  // Validate engine if present
+  if (engineObj['engine'] !== 'agentics-simulation-engine') {
     errors.push({
       path: `${path}/engine`,
       message: 'Field "engine" must be "agentics-simulation-engine"',
@@ -273,24 +274,16 @@ function validateTargetEngine(
     });
   }
 
-  // Required: versionConstraint
-  if (!('versionConstraint' in engineObj)) {
-    errors.push({
-      path: `${path}/versionConstraint`,
-      message: 'Required field "versionConstraint" is missing in targetEngine',
-      keyword: 'required',
-    });
-  } else {
-    validateString(
-      engineObj['versionConstraint'],
-      `${path}/versionConstraint`,
-      'versionConstraint',
-      1,
-      64,
-      SEMVER_CONSTRAINT_REGEX,
-      errors
-    );
-  }
+  // Validate versionConstraint if present
+  validateString(
+    engineObj['versionConstraint'],
+    `${path}/versionConstraint`,
+    'versionConstraint',
+    1,
+    64,
+    SEMVER_CONSTRAINT_REGEX,
+    errors
+  );
 
   // Optional: requiredCapabilities
   if ('requiredCapabilities' in engineObj) {
@@ -827,35 +820,26 @@ function validateScenario(
 
   const scenarioObj = scenario as Record<string, unknown>;
 
-  // Required: scenarioId
-  if (!('scenarioId' in scenarioObj)) {
-    errors.push({
-      path: `${path}/scenarioId`,
-      message: 'Required field "scenarioId" is missing in scenario',
-      keyword: 'required',
-    });
-  } else {
-    validateUUID(scenarioObj['scenarioId'], `${path}/scenarioId`, 'scenarioId', errors);
+  // CLI compatibility: if scenario is present but incomplete, skip validation.
+  // The planner will ignore incomplete scenarios. Only intent is truly required.
+  if (!('scenarioId' in scenarioObj) || !('name' in scenarioObj)) {
+    // Incomplete scenario - skip validation, planner will handle defaults
+    return;
   }
 
-  // Required: name
-  if (!('name' in scenarioObj)) {
-    errors.push({
-      path: `${path}/name`,
-      message: 'Required field "name" is missing in scenario',
-      keyword: 'required',
-    });
-  } else {
-    validateString(
-      scenarioObj['name'],
-      `${path}/name`,
-      'name',
-      1,
-      MAX_SCENARIO_NAME_LENGTH,
-      null,
-      errors
-    );
-  }
+  // Validate scenarioId if present
+  validateUUID(scenarioObj['scenarioId'], `${path}/scenarioId`, 'scenarioId', errors);
+
+  // Validate name if present
+  validateString(
+    scenarioObj['name'],
+    `${path}/name`,
+    'name',
+    1,
+    MAX_SCENARIO_NAME_LENGTH,
+    null,
+    errors
+  );
 
   // Optional: description
   if ('description' in scenarioObj) {
@@ -988,35 +972,26 @@ function validateScenarioAssumptions(
 
     const assumptionObj = assumption as Record<string, unknown>;
 
-    // Required: id
-    if (!('id' in assumptionObj)) {
-      errors.push({
-        path: `${assumptionPath}/id`,
-        message: 'Required field "id" is missing in assumption',
-        keyword: 'required',
-      });
-    } else {
-      validateUUID(assumptionObj['id'], `${assumptionPath}/id`, 'id', errors);
+    // CLI compatibility: if assumption is present but incomplete, skip validation.
+    // Only intent is truly required.
+    if (!('id' in assumptionObj) || !('statement' in assumptionObj)) {
+      // Incomplete assumption - skip validation
+      continue;
     }
 
-    // Required: statement
-    if (!('statement' in assumptionObj)) {
-      errors.push({
-        path: `${assumptionPath}/statement`,
-        message: 'Required field "statement" is missing in assumption',
-        keyword: 'required',
-      });
-    } else {
-      validateString(
-        assumptionObj['statement'],
-        `${assumptionPath}/statement`,
-        'statement',
-        1,
-        MAX_ASSUMPTION_LENGTH,
-        null,
-        errors
-      );
-    }
+    // Validate id if present
+    validateUUID(assumptionObj['id'], `${assumptionPath}/id`, 'id', errors);
+
+    // Validate statement if present
+    validateString(
+      assumptionObj['statement'],
+      `${assumptionPath}/statement`,
+      'statement',
+      1,
+      MAX_ASSUMPTION_LENGTH,
+      null,
+      errors
+    );
 
     // Optional: category
     if ('category' in assumptionObj && !VALID_ASSUMPTION_CATEGORIES.has(assumptionObj['category'] as string)) {

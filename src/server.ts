@@ -236,12 +236,12 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
 
   // Health check endpoint
   if (url === '/health' || url === '/') {
-    sendJSON(res, 200, { status: 'healthy', service: 'agentics-planner' });
+    sendJSON(res, 200, { status: 'healthy', service: 'agentics-simulation-planner' });
     return;
   }
 
-  // Plans endpoint
-  if (url === '/v1/plans') {
+  // Plans endpoint - support multiple paths for CLI compatibility
+  if (url === '/v1/plans' || url === '/v1/plan' || url === '/plan' || url === '/plans') {
     await handlePlansEndpoint(req, res);
     return;
   }

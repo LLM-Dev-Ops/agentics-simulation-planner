@@ -184,19 +184,21 @@ describe('Contract Validator', () => {
         expect(result.errors.some(e => e.path.includes('targetEngine/engine'))).toBe(true);
       });
 
-      it('should reject missing versionConstraint in targetEngine', () => {
+      it('should accept incomplete targetEngine for CLI compatibility', () => {
         const request = {
           intent: 'Test intent',
           config: {
             targetEngine: {
               engine: 'agentics-simulation-engine',
+              // missing versionConstraint - should be accepted for CLI compatibility
             },
           },
         };
         const result = validatePlanningRequest(request);
 
-        expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.path.includes('versionConstraint'))).toBe(true);
+        // Incomplete nested objects are now accepted - only intent is required
+        expect(result.valid).toBe(true);
+        expect(result.errors).toHaveLength(0);
       });
 
       it('should reject invalid scope type', () => {
@@ -296,31 +298,35 @@ describe('Contract Validator', () => {
       });
     });
 
-    describe('invalid requests - scenario validation', () => {
-      it('should reject scenario without scenarioId', () => {
+    describe('scenario validation - CLI compatibility', () => {
+      it('should accept scenario without scenarioId for CLI compatibility', () => {
         const request = {
           intent: 'Test intent',
           scenario: {
             name: 'Test Scenario',
+            // missing scenarioId - accepted for CLI compatibility
           },
         };
         const result = validatePlanningRequest(request);
 
-        expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.path.includes('scenarioId'))).toBe(true);
+        // Incomplete scenarios are now accepted - only intent is required
+        expect(result.valid).toBe(true);
+        expect(result.errors).toHaveLength(0);
       });
 
-      it('should reject scenario without name', () => {
+      it('should accept scenario without name for CLI compatibility', () => {
         const request = {
           intent: 'Test intent',
           scenario: {
             scenarioId: '12345678-1234-1234-1234-123456789abc',
+            // missing name - accepted for CLI compatibility
           },
         };
         const result = validatePlanningRequest(request);
 
-        expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.path.includes('scenario/name'))).toBe(true);
+        // Incomplete scenarios are now accepted - only intent is required
+        expect(result.valid).toBe(true);
+        expect(result.errors).toHaveLength(0);
       });
 
       it('should reject invalid assumption id', () => {
