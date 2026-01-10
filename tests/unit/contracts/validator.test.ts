@@ -386,44 +386,45 @@ describe('Contract Validator', () => {
       });
     });
 
-    describe('invalid requests - additional properties', () => {
-      it('should reject unknown properties at root level', () => {
+    describe('additional properties handling - CLI compatibility', () => {
+      it('should accept unknown properties at root level for CLI compatibility', () => {
         const request = {
           intent: 'Test intent',
-          unknownField: 'should not be here',
+          unknownField: 'CLI may send extra fields',
+          organizationalContext: { name: 'Test Org' },
         };
         const result = validatePlanningRequest(request);
 
-        expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.keyword === 'additionalProperties')).toBe(true);
+        expect(result.valid).toBe(true);
+        expect(result.errors).toHaveLength(0);
       });
 
-      it('should reject unknown properties in config', () => {
+      it('should accept unknown properties in config for CLI compatibility', () => {
         const request = {
           intent: 'Test intent',
           config: {
-            unknownConfigField: 'should not be here',
+            unknownConfigField: 'CLI may send extra fields',
           },
         };
         const result = validatePlanningRequest(request);
 
-        expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.keyword === 'additionalProperties')).toBe(true);
+        expect(result.valid).toBe(true);
+        expect(result.errors).toHaveLength(0);
       });
 
-      it('should reject unknown properties in scenario', () => {
+      it('should accept unknown properties in scenario for CLI compatibility', () => {
         const request = {
           intent: 'Test intent',
           scenario: {
             scenarioId: '12345678-1234-1234-1234-123456789abc',
             name: 'Test Scenario',
-            extraField: 'not allowed',
+            extraField: 'CLI may send extra fields',
           },
         };
         const result = validatePlanningRequest(request);
 
-        expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.keyword === 'additionalProperties')).toBe(true);
+        expect(result.valid).toBe(true);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
@@ -490,7 +491,8 @@ describe('Contract Validator', () => {
   describe('ContractValidationError', () => {
     it('should contain all error details', () => {
       try {
-        validatePlanningRequest({ intent: '', unknownField: true }, { throwOnError: true });
+        // Empty intent should cause validation error (unknownField is now allowed)
+        validatePlanningRequest({ intent: '' }, { throwOnError: true });
         fail('Expected error to be thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(ContractValidationError);

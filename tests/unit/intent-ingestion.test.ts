@@ -46,14 +46,17 @@ describe('Intent Ingestion Module', () => {
       await expect(ingestIntent(input, adapter)).rejects.toThrow(ValidationError);
     });
 
-    it('should reject missing organizational context', async () => {
+    it('should accept missing organizational context (now optional for CLI compatibility)', async () => {
       const input = {
         rawIntent: 'Reduce costs',
         organizationalContext: null as unknown as ReturnType<typeof createMinimalContext>,
         sessionId,
       };
 
-      await expect(ingestIntent(input, adapter)).rejects.toThrow(ValidationError);
+      // Organizational context is now optional - the planner provides defaults
+      const result = await ingestIntent(input, adapter);
+      expect(result.rawInput).toBe('Reduce costs');
+      expect(result.context).toBeNull();
     });
   });
 
