@@ -1237,17 +1237,8 @@ export function validatePlanningRequest(
   // Validate scenario
   validateScenario(requestObj['scenario'], '/scenario', errors);
 
-  // Check for additional properties at root level
-  const allowedRootProps = new Set(['intent', 'organizationId', 'organizationName', 'seed', 'namespace', 'config', 'scenario']);
-  for (const key of Object.keys(requestObj)) {
-    if (!allowedRootProps.has(key)) {
-      errors.push({
-        path: `/${key}`,
-        message: `Additional property "${key}" is not allowed`,
-        keyword: 'additionalProperties',
-      });
-    }
-  }
+  // Note: Additional properties at root level are now ignored for CLI compatibility.
+  // The CLI may send extra fields that the planner doesn't use.
 
   const result: ContractValidationResult = {
     valid: errors.length === 0,
