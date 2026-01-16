@@ -32,6 +32,16 @@ export type {
   ContractPlanningResponse,
   ContractSchemaMetadata,
   ExecutionMetadata,
+  // Executive-Synthesis Types
+  PlanCategory,
+  StepStatus,
+  SynthesisStepExecution,
+  SynthesisPlanningMetrics,
+  SynthesisResults,
+  SynthesisScenario,
+  SynthesisExecutionMetadata,
+  SynthesisPlanStatus,
+  ExecutiveSynthesisFields,
 } from './types.js';
 
 // Validator
@@ -50,3 +60,15 @@ export {
   createValidationFailureProof,
   verifyExecutionProof,
 } from './execution-proof.js';
+
+// Executive-Synthesis Builder
+export {
+  inferPlanCategory,
+  calculateComplexityScore,
+  estimatePlanDuration,
+  countPlannedSteps,
+  convertProofToSteps,
+  buildSynthesisFields,
+  buildFailedSynthesisFields,
+  type SynthesisBuilderInput,
+} from './synthesis-builder.js';

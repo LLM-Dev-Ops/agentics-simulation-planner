@@ -15,9 +15,12 @@ import {
   parseAndValidateRequest,
   ContractValidationError,
   createValidationFailureProof,
+  buildSynthesisFields,
+  buildFailedSynthesisFields,
   type ContractValidationResult,
   type ExecutionProof,
   type ExecutionMetadata,
+  type ExecutiveSynthesisFields,
 } from './contracts/index.js';
 import { getCurrentTimestampUTC } from './utils/text.js';
 import { SCHEMA_VERSION } from './contracts/validator.js';
@@ -47,8 +50,11 @@ function createExecutionMetadata(
 /**
  * Response format for planning endpoints.
  * ALL responses include execution_metadata, execution proof, and validation result.
+ *
+ * Executive-synthesis compatible fields are included alongside existing fields
+ * to enable plan output to be consumed by executive-synthesis unchanged.
  */
-interface PlanningResponse {
+interface PlanningResponse extends Partial<ExecutiveSynthesisFields> {
   success: boolean;
   execution_metadata: ExecutionMetadata;
   plan?: unknown;
@@ -165,6 +171,18 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
     // Execute planning with contract enforcement
     const result = await planSimulationWithContract(input, rawBody, options);
 
+    // Build executive-synthesis compatible fields
+    const synthesisFields = buildSynthesisFields({
+      plan: result.plan,
+      sessionId: result.sessionId,
+      contentHash: result.contentHash,
+      processingTimeMs: result.processingTimeMs,
+      executionProof: result.executionProof,
+      intent: validatedRequest.intent,
+      scenario: validatedRequest.scenario,
+      namespace: validatedRequest.namespace,
+    });
+
     const response: PlanningResponse = {
       success: true,
       execution_metadata: createExecutionMetadata(
@@ -178,14 +196,34 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
       processingTimeMs: result.processingTimeMs,
       executionProof: result.executionProof,
       validationResult: result.validationResult,
+      // Executive-synthesis compatible fields
+      ...synthesisFields,
     };
 
     sendJSON(res, 200, response);
   } catch (error) {
+    // Extract intent from raw body for error responses
+    const extractedIntent = typeof rawBody === 'object' && rawBody !== null
+      ? (rawBody as Record<string, unknown>)['intent'] as string | undefined
+      : undefined;
+    const fallbackIntent = extractedIntent ?? 'Unknown intent';
+
     // Handle contract validation errors specifically
     if (error instanceof ContractValidationError) {
       const proof = createValidationFailureProof(rawBody, error.errors);
       const processingTimeMs = Date.now() - requestStartTime;
+
+      // Build synthesis fields for failed validation
+      const synthesisFields = buildFailedSynthesisFields(
+        error,
+        proof.sessionId,
+        fallbackIntent,
+        processingTimeMs,
+        typeof rawBody === 'object' && rawBody !== null
+          ? (rawBody as Record<string, unknown>)['namespace'] as string | undefined
+          : undefined
+      );
+
       const response: PlanningResponse = {
         success: false,
         execution_metadata: createExecutionMetadata(proof.sessionId, processingTimeMs, false),
@@ -201,6 +239,8 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
           validatedAt: error.validatedAt,
           schemaVersion: SCHEMA_VERSION,
         },
+        // Executive-synthesis compatible fields
+        ...synthesisFields,
       };
       sendJSON(res, 400, response);
       return;
@@ -212,6 +252,18 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
       { path: '/', message: errorMessage },
     ]);
     const processingTimeMs = Date.now() - requestStartTime;
+
+    // Build synthesis fields for planning failure
+    const synthesisFields = buildFailedSynthesisFields(
+      error instanceof Error ? error : new Error(errorMessage),
+      proof.sessionId,
+      fallbackIntent,
+      processingTimeMs,
+      typeof rawBody === 'object' && rawBody !== null
+        ? (rawBody as Record<string, unknown>)['namespace'] as string | undefined
+        : undefined
+    );
+
     const response: PlanningResponse = {
       success: false,
       execution_metadata: createExecutionMetadata(proof.sessionId, processingTimeMs, false),
@@ -226,6 +278,8 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
         validatedAt: getCurrentTimestampUTC(),
         schemaVersion: SCHEMA_VERSION,
       },
+      // Executive-synthesis compatible fields
+      ...synthesisFields,
     };
     sendJSON(res, 500, response);
   }

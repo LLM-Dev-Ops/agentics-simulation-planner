@@ -223,3 +223,104 @@ export interface ExecutionMetadata {
   readonly processing_time_ms: number;
   readonly status: 'success' | 'error';
 }
+
+// ============================================================================
+// Executive-Synthesis Compatible Types
+// These types enable plan output to be consumed by executive-synthesis unchanged
+// ============================================================================
+
+/**
+ * Plan category for executive synthesis classification.
+ */
+export type PlanCategory = 'enterprise' | 'integration' | 'standard';
+
+/**
+ * Step execution status.
+ */
+export type StepStatus = 'success' | 'failed' | 'skipped';
+
+/**
+ * Individual step execution record for synthesis tracking.
+ */
+export interface SynthesisStepExecution {
+  readonly stepId: string;
+  readonly action: string;
+  readonly status: StepStatus;
+  readonly duration_ms: number;
+}
+
+/**
+ * Planning metrics for synthesis results.
+ */
+export interface SynthesisPlanningMetrics {
+  readonly steps_planned: number;
+  readonly estimated_duration_ms: number;
+  readonly complexity_score: number;
+}
+
+/**
+ * Synthesis results containing iteration and metric data.
+ */
+export interface SynthesisResults {
+  readonly total_iterations: number;
+  readonly successful_iterations: number;
+  readonly failed_iterations: number;
+  readonly success_rate: number;
+  readonly metrics: SynthesisPlanningMetrics;
+}
+
+/**
+ * Scenario reference for synthesis.
+ */
+export interface SynthesisScenario {
+  readonly scenarioId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly category: PlanCategory;
+  readonly version: string;
+}
+
+/**
+ * Execution metadata specific to synthesis layer.
+ */
+export interface SynthesisExecutionMetadata {
+  readonly execution_id: UUID;
+  readonly layer: 'planning';
+  readonly timestamp: Timestamp;
+  readonly trace_id: UUID;
+  readonly checksum: SHA256Hash;
+}
+
+/**
+ * Plan status for synthesis.
+ */
+export type SynthesisPlanStatus = 'created' | 'validated' | 'failed';
+
+/**
+ * Executive-synthesis compatible fields.
+ * These fields are ADDED alongside existing response fields for synthesis consumption.
+ */
+export interface ExecutiveSynthesisFields {
+  /** Plan identifier */
+  readonly id: string;
+  /** Type discriminator for synthesis */
+  readonly type: 'PlanReference';
+  /** Repository/manifest source */
+  readonly repository: string;
+  /** Plan creation status */
+  readonly status: SynthesisPlanStatus;
+  /** Plan creation timestamp */
+  readonly created_at: Timestamp;
+  /** Plan completion timestamp */
+  readonly completed_at: Timestamp;
+  /** Number of planning iterations */
+  readonly iteration_count: number;
+  /** Synthesis results with metrics */
+  readonly results: SynthesisResults;
+  /** Scenario reference */
+  readonly scenario: SynthesisScenario;
+  /** Executed planning steps */
+  readonly steps_executed: readonly SynthesisStepExecution[];
+  /** Synthesis-specific execution metadata */
+  readonly synthesis_execution_metadata: SynthesisExecutionMetadata;
+}
