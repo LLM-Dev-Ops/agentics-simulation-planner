@@ -85,3 +85,36 @@ export {
   validateAndNormalize,
   serializeSimulationPlan,
 } from './modules/index.js';
+
+// Executive Synthesis exports - Decision Packet generation
+// Use for: plan create, plan approve
+// Exclude for: plan list, plan inspect, plan delete
+export {
+  // Builder functions
+  buildExecutiveSummary,
+  elevateRiskForProduction,
+  // Utility functions
+  determineEnvironment,
+  calculateSuccessRate,
+  countBlockingIssues,
+  extractBlockingIssues,
+  isProductionTarget,
+  createDecisionContext,
+  createDecisionMetrics,
+  // Constants
+  DEFAULT_PRODUCTION_ELEVATION,
+  // Types
+  type Environment,
+  type RiskSeverity,
+  type RiskCategory,
+  type IdentifiedRisk,
+  type Mitigation,
+  type BlockingIssue,
+  type SynthesisPhase,
+  type DecisionPacketContext,
+  type DecisionPacketMetrics,
+  type DecisionPacket,
+  type ExecutiveSummaryInput,
+  type ExecutiveSummaryResult,
+  type RiskElevationConfig,
+} from './synthesis/index.js';

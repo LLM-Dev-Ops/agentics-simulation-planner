@@ -22,6 +22,13 @@ import {
   type ExecutionMetadata,
   type ExecutiveSynthesisFields,
 } from './contracts/index.js';
+import {
+  buildExecutiveSummary,
+  elevateRiskForProduction,
+  isProductionTarget,
+  type DecisionPacket,
+  type SynthesisPhase,
+} from './synthesis/index.js';
 import { getCurrentTimestampUTC } from './utils/text.js';
 import { SCHEMA_VERSION } from './contracts/validator.js';
 
@@ -53,6 +60,10 @@ function createExecutionMetadata(
  *
  * Executive-synthesis compatible fields are included alongside existing fields
  * to enable plan output to be consumed by executive-synthesis unchanged.
+ *
+ * Decision packets are emitted for plan create operations (this endpoint).
+ * plan approve would also emit decision packets (not implemented here).
+ * plan list, plan inspect, plan delete are excluded from synthesis.
  */
 interface PlanningResponse extends Partial<ExecutiveSynthesisFields> {
   success: boolean;
@@ -68,6 +79,8 @@ interface PlanningResponse extends Partial<ExecutiveSynthesisFields> {
   };
   executionProof: ExecutionProof;
   validationResult: ContractValidationResult;
+  /** Decision packet for synthesis integration */
+  synthesis?: DecisionPacket;
 }
 
 function parseBody(req: IncomingMessage): Promise<unknown> {
@@ -183,6 +196,28 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
       namespace: validatedRequest.namespace,
     });
 
+    // Build decision packet for plan create operation
+    const phases: SynthesisPhase[] = ['validation', 'execution', 'persistence'];
+    let decisionSummary = buildExecutiveSummary(
+      {
+        environment: isProductionTarget(rawBody as Record<string, unknown>) ? 'production' : 'development',
+        timestamp: getCurrentTimestampUTC(),
+        version: result.plan.version,
+        commit_sha: process.env['GIT_SHA'],
+      },
+      {
+        success_rate: 1.0,
+        failed_iterations: 0,
+        blocking_issues: [],
+      },
+      phases
+    );
+
+    // Apply production risk elevation if targeting production
+    if (isProductionTarget(rawBody as Record<string, unknown>)) {
+      decisionSummary = elevateRiskForProduction(decisionSummary);
+    }
+
     const response: PlanningResponse = {
       success: true,
       execution_metadata: createExecutionMetadata(
@@ -198,6 +233,8 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
       validationResult: result.validationResult,
       // Executive-synthesis compatible fields
       ...synthesisFields,
+      // Decision packet for CLI display
+      synthesis: decisionSummary.packet,
     };
 
     sendJSON(res, 200, response);
@@ -224,6 +261,35 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
           : undefined
       );
 
+      // Build decision packet for failed validation
+      const blockingIssues = error.errors.map(e => ({
+        id: `issue-${e.path}`,
+        category: 'validation_failure' as const,
+        description: e.message,
+        path: e.path,
+      }));
+
+      const failedPhases: SynthesisPhase[] = ['validation'];
+      let decisionSummary = buildExecutiveSummary(
+        {
+          environment: isProductionTarget(rawBody as Record<string, unknown>) ? 'production' : 'development',
+          timestamp: getCurrentTimestampUTC(),
+          version: '1.0.0',
+          commit_sha: process.env['GIT_SHA'],
+        },
+        {
+          success_rate: 0.0,
+          failed_iterations: 1,
+          blocking_issues: blockingIssues,
+        },
+        failedPhases
+      );
+
+      // Apply production risk elevation if targeting production
+      if (isProductionTarget(rawBody as Record<string, unknown>)) {
+        decisionSummary = elevateRiskForProduction(decisionSummary);
+      }
+
       const response: PlanningResponse = {
         success: false,
         execution_metadata: createExecutionMetadata(proof.sessionId, processingTimeMs, false),
@@ -241,6 +307,8 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
         },
         // Executive-synthesis compatible fields
         ...synthesisFields,
+        // Decision packet for CLI display
+        synthesis: decisionSummary.packet,
       };
       sendJSON(res, 400, response);
       return;
@@ -264,6 +332,35 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
         : undefined
     );
 
+    // Build decision packet for planning failure
+    const executionBlockingIssues = [{
+      id: 'issue-execution',
+      category: 'execution_failure' as const,
+      description: errorMessage,
+      path: '/',
+    }];
+
+    const failedPhases: SynthesisPhase[] = ['validation', 'execution'];
+    let decisionSummary = buildExecutiveSummary(
+      {
+        environment: isProductionTarget(rawBody as Record<string, unknown>) ? 'production' : 'development',
+        timestamp: getCurrentTimestampUTC(),
+        version: '1.0.0',
+        commit_sha: process.env['GIT_SHA'],
+      },
+      {
+        success_rate: 0.0,
+        failed_iterations: 1,
+        blocking_issues: executionBlockingIssues,
+      },
+      failedPhases
+    );
+
+    // Apply production risk elevation if targeting production
+    if (isProductionTarget(rawBody as Record<string, unknown>)) {
+      decisionSummary = elevateRiskForProduction(decisionSummary);
+    }
+
     const response: PlanningResponse = {
       success: false,
       execution_metadata: createExecutionMetadata(proof.sessionId, processingTimeMs, false),
@@ -280,6 +377,8 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
       },
       // Executive-synthesis compatible fields
       ...synthesisFields,
+      // Decision packet for CLI display
+      synthesis: decisionSummary.packet,
     };
     sendJSON(res, 500, response);
   }
