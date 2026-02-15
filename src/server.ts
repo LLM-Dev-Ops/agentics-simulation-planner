@@ -7,6 +7,7 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { randomUUID } from 'crypto';
 import {
   planSimulationWithContract,
   type ContractPlanningInput,
@@ -105,6 +106,118 @@ function sendJSON(res: ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
+// ============================================================================
+// Manifest-ref based plan generation (simplified contract)
+// ============================================================================
+
+interface ManifestRef {
+  id: string;
+  version: string;
+}
+
+interface ManifestPlanRequest {
+  manifest_ref: ManifestRef;
+  params?: Record<string, unknown>;
+  intent: string;
+}
+
+interface ManifestPlanStep {
+  step_id: string;
+  name: string;
+  service: string;
+  action: string;
+  config: Record<string, unknown>;
+  dependencies: string[];
+}
+
+interface ManifestPlanResponse {
+  plan: {
+    id: string;
+    version: string;
+    intent: string;
+    steps: ManifestPlanStep[];
+    created_at: string;
+    estimated_duration_ms: number;
+  };
+  execution_metadata: {
+    trace_id: string;
+    timestamp: string;
+    service: string;
+  };
+}
+
+function isManifestPlanRequest(body: unknown): body is ManifestPlanRequest {
+  if (typeof body !== 'object' || body === null) return false;
+  const obj = body as Record<string, unknown>;
+  return (
+    typeof obj['manifest_ref'] === 'object' &&
+    obj['manifest_ref'] !== null &&
+    typeof obj['intent'] === 'string'
+  );
+}
+
+function generateDefaultSteps(
+  intent: string,
+  params: Record<string, unknown> | undefined
+): ManifestPlanStep[] {
+  return [
+    {
+      step_id: 'step-1',
+      name: 'Initialize simulation environment',
+      service: 'agentics-simulation-engine',
+      action: 'setup',
+      config: params ?? {},
+      dependencies: [],
+    },
+    {
+      step_id: 'step-2',
+      name: 'Execute simulation scenarios',
+      service: 'agentics-simulation-runner',
+      action: 'run',
+      config: {},
+      dependencies: ['step-1'],
+    },
+    {
+      step_id: 'step-3',
+      name: 'Collect and index results',
+      service: 'agentics-results-index',
+      action: 'store',
+      config: {},
+      dependencies: ['step-2'],
+    },
+  ];
+}
+
+function handleManifestPlanRequest(
+  req: IncomingMessage,
+  body: ManifestPlanRequest
+): ManifestPlanResponse {
+  const correlationId =
+    (req.headers['x-correlation-id'] as string | undefined) ?? randomUUID();
+
+  const steps = generateDefaultSteps(body.intent, body.params);
+
+  return {
+    plan: {
+      id: `plan-${randomUUID()}`,
+      version: body.manifest_ref.version ?? '1.0.0',
+      intent: body.intent,
+      steps,
+      created_at: new Date().toISOString(),
+      estimated_duration_ms: 30000,
+    },
+    execution_metadata: {
+      trace_id: correlationId,
+      timestamp: new Date().toISOString(),
+      service: 'agentics-simulation-planner',
+    },
+  };
+}
+
+// ============================================================================
+// Contract-validated plan generation (existing complex contract)
+// ============================================================================
+
 async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const requestStartTime = Date.now();
 
@@ -162,6 +275,16 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
     sendJSON(res, 400, response);
     return;
   }
+
+  await handlePlansEndpointWithBody(rawBody, req, res);
+}
+
+async function handlePlansEndpointWithBody(
+  rawBody: unknown,
+  _req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const requestStartTime = Date.now();
 
   try {
     // Contract validation happens FIRST, before any planning
@@ -389,12 +512,47 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
 
   // Health check endpoint
   if (url === '/health' || url === '/') {
-    sendJSON(res, 200, { status: 'healthy', service: 'agentics-simulation-planner' });
+    sendJSON(res, 200, {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'agentics-simulation-planner',
+    });
     return;
   }
 
   // Plans endpoint - support multiple paths for CLI compatibility
   if (url === '/v1/plans' || url === '/v1/plan' || url === '/plan' || url === '/plans') {
+    // For POST requests, check if this is a manifest_ref-based request
+    if (req.method === 'POST') {
+      let rawBody: unknown;
+      try {
+        rawBody = await parseBody(req);
+      } catch {
+        sendJSON(res, 400, {
+          error: { code: 'INVALID_JSON', message: 'Invalid JSON body' },
+          execution_metadata: {
+            trace_id: randomUUID(),
+            timestamp: new Date().toISOString(),
+            service: 'agentics-simulation-planner',
+          },
+        });
+        return;
+      }
+
+      // Route based on request shape
+      if (isManifestPlanRequest(rawBody)) {
+        const response = handleManifestPlanRequest(req, rawBody);
+        sendJSON(res, 200, response);
+        return;
+      }
+
+      // Fall through to contract-validated handler (re-parse not needed,
+      // but the existing handler parses its own body, so we use a wrapper)
+      await handlePlansEndpointWithBody(rawBody, req, res);
+      return;
+    }
+
+    // Non-POST methods handled by existing handler
     await handlePlansEndpoint(req, res);
     return;
   }
