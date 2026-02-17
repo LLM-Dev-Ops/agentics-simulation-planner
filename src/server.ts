@@ -32,6 +32,7 @@ import {
 } from './synthesis/index.js';
 import { getCurrentTimestampUTC } from './utils/text.js';
 import { SCHEMA_VERSION } from './contracts/validator.js';
+import { fireFanout, buildFanoutContext } from './hooks/fanout.js';
 
 const PORT = parseInt(process.env['PORT'] || '8080', 10);
 const PLANNER_VERSION = '1.0.0';
@@ -281,7 +282,7 @@ async function handlePlansEndpoint(req: IncomingMessage, res: ServerResponse): P
 
 async function handlePlansEndpointWithBody(
   rawBody: unknown,
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse
 ): Promise<void> {
   const requestStartTime = Date.now();
@@ -361,6 +362,20 @@ async function handlePlansEndpointWithBody(
     };
 
     sendJSON(res, 200, response);
+
+    // Fire-and-forget fanout to core bundles (non-blocking)
+    const correlationId =
+      (req.headers['x-correlation-id'] as string | undefined) ?? result.sessionId;
+    const fanoutCtx = buildFanoutContext({
+      sessionId: result.sessionId,
+      correlationId,
+      processingTimeMs: result.processingTimeMs,
+      executionProof: result.executionProof,
+      scenario: validatedRequest.scenario,
+      plan: result.plan,
+      rawBody,
+    });
+    fireFanout(fanoutCtx).catch(() => {/* swallow — individual failures already logged at WARN */});
   } catch (error) {
     // Extract intent from raw body for error responses
     const extractedIntent = typeof rawBody === 'object' && rawBody !== null
@@ -543,6 +558,20 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
       if (isManifestPlanRequest(rawBody)) {
         const response = handleManifestPlanRequest(req, rawBody);
         sendJSON(res, 200, response);
+
+        // Fire-and-forget fanout for manifest-based plans
+        const correlationId =
+          (req.headers['x-correlation-id'] as string | undefined) ?? response.execution_metadata.trace_id;
+        const fanoutCtx = buildFanoutContext({
+          sessionId: response.plan.id,
+          correlationId,
+          processingTimeMs: response.plan.estimated_duration_ms,
+          executionProof: { entries: response.plan.steps },
+          scenario: undefined,
+          plan: response.plan,
+          rawBody,
+        });
+        fireFanout(fanoutCtx).catch(() => {/* individual failures already logged at WARN */});
         return;
       }
 
