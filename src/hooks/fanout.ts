@@ -182,6 +182,99 @@ export function fireFanout(ctx: FanoutContext): Promise<FanoutResult[]> {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Simulation-completed fanout (downstream core bundle notification)
+// ---------------------------------------------------------------------------
+
+const AUTOMATION_CORE_URL =
+  process.env['AUTOMATION_CORE_URL'] ??
+  'https://automation-core-1062287243982.us-central1.run.app';
+
+export interface SimulationFanoutParams {
+  executionId: string;
+  result: unknown;
+}
+
+/**
+ * Fire non-blocking notifications to downstream core bundles after a
+ * successful simulation response.  Fire-and-forget — failures are logged
+ * at WARN and never propagate.
+ */
+export function fireSimulationFanout(params: SimulationFanoutParams): void {
+  const { executionId, result } = params;
+  const now = new Date().toISOString();
+
+  const telemetryBody = {
+    source: 'agentics-simulation-planner',
+    event_type: 'simulation_completed',
+    execution_id: executionId,
+    timestamp: now,
+    payload: result,
+  };
+
+  const orchestrationBody = {
+    source: 'agentics-simulation-planner',
+    event_type: 'simulation_completed',
+    execution_id: executionId,
+    timestamp: now,
+    payload: result,
+  };
+
+  const auditBody = {
+    source: 'agentics-simulation-planner',
+    event_type: 'simulation_audit',
+    execution_id: executionId,
+    timestamp: now,
+    payload: { action: 'simulate', status: 'completed' },
+  };
+
+  const targets: Array<{ name: string; url: string; body: Record<string, unknown> }> = [
+    {
+      name: 'intelligence-core/telemetry',
+      url: `${SERVICE_URLS.intelligenceCore}/v1/ingest/telemetry`,
+      body: telemetryBody,
+    },
+    {
+      name: 'automation-core/orchestration',
+      url: `${AUTOMATION_CORE_URL}/v1/orchestration/event`,
+      body: orchestrationBody,
+    },
+    {
+      name: 'security-core/audit',
+      url: `${SERVICE_URLS.securityCore}/v1/audit/record`,
+      body: auditBody,
+    },
+  ];
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5_000);
+
+  Promise.allSettled(
+    targets.map(async (t) => {
+      const res = await fetch(t.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(t.body),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        console.warn(`Fanout WARN: ${t.name} responded ${res.status}`);
+      }
+    }),
+  )
+    .then((results) => {
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i]!;
+        if (r.status === 'rejected') {
+          const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+          console.warn(`Fanout WARN: ${targets[i]!.name} (${targets[i]!.url}) failed - ${msg}`);
+        }
+      }
+    })
+    .catch(() => {/* swallow */})
+    .finally(() => clearTimeout(timeout));
+}
+
 /**
  * Build a FanoutContext from planning results and request metadata.
  */

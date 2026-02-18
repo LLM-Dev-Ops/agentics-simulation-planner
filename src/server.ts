@@ -32,7 +32,7 @@ import {
 } from './synthesis/index.js';
 import { getCurrentTimestampUTC } from './utils/text.js';
 import { SCHEMA_VERSION } from './contracts/validator.js';
-import { fireFanout, buildFanoutContext } from './hooks/fanout.js';
+import { fireFanout, buildFanoutContext, fireSimulationFanout } from './hooks/fanout.js';
 
 const PORT = parseInt(process.env['PORT'] || '8080', 10);
 const PLANNER_VERSION = '1.0.0';
@@ -376,6 +376,9 @@ async function handlePlansEndpointWithBody(
       rawBody,
     });
     fireFanout(fanoutCtx).catch(() => {/* swallow — individual failures already logged at WARN */});
+
+    // Notify downstream core bundles (fire-and-forget)
+    fireSimulationFanout({ executionId: result.sessionId, result: response });
   } catch (error) {
     // Extract intent from raw body for error responses
     const extractedIntent = typeof rawBody === 'object' && rawBody !== null
@@ -572,6 +575,9 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
           rawBody,
         });
         fireFanout(fanoutCtx).catch(() => {/* individual failures already logged at WARN */});
+
+        // Notify downstream core bundles (fire-and-forget)
+        fireSimulationFanout({ executionId: response.plan.id, result: response });
         return;
       }
 
