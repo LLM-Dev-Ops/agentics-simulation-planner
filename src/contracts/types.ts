@@ -10,7 +10,7 @@ import type { UUID, Timestamp, SHA256Hash } from '../types/common.js';
  * Target engine specification for simulation execution.
  */
 export interface ContractTargetEngine {
-  readonly engine: 'agentics-simulation-engine';
+  readonly engine: 'agentics-simulation-runner';
   readonly versionConstraint: string;
   readonly requiredCapabilities?: readonly string[];
 }

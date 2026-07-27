@@ -34,7 +34,7 @@ The Agentics Simulation Planner is a **planning-only** service that:
 - Maps organizational topology to agent archetypes
 - Generates deterministic execution plans for the simulation engine
 
-**It does NOT execute simulations** — that's the responsibility of `agentics-simulation-engine`.
+**It does NOT execute simulations** — that's the responsibility of `agentics-simulation-runner`.
 
 ---
 
@@ -144,7 +144,7 @@ Create a simulation plan from natural language intent.
   // Optional: Simulation configuration
   config?: {
     targetEngine?: {
-      engine: "agentics-simulation-engine";
+      engine: "agentics-simulation-runner";
       versionConstraint: string;  // e.g., "^1.0.0"
       requiredCapabilities?: string[];
     };
@@ -371,7 +371,7 @@ src/
 - Planner produces plans, does NOT execute
 - ERP data references are abstract (fetched by erp-adapter)
 - ROI calculations delegated to analytics-service
-- Execution delegated to agentics-simulation-engine
+- Execution delegated to agentics-simulation-runner
 
 ---
 

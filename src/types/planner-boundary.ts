@@ -21,7 +21,7 @@
  * - Serialize the plan for downstream consumption
  *
  * ### What the Planner Must NEVER Do
- * - Execute simulations (that's agentics-simulation-engine's job)
+ * - Execute simulations (that's agentics-simulation-runner's job)
  * - Calculate financial metrics like ROI (that's analytics' job)
  * - Normalize or transform ERP data (that's ERP adapter's job)
  * - Make runtime API calls (no side effects during planning)
@@ -121,7 +121,7 @@ export type PlannerOperation =
  */
 export type ProhibitedOperation =
   /**
-   * PROHIBITED: Execution belongs to agentics-simulation-engine.
+   * PROHIBITED: Execution belongs to agentics-simulation-runner.
    *
    * The planner produces a plan; the engine executes it.
    * Mixing these concerns would:
@@ -206,7 +206,7 @@ export type DelegationTarget =
    * The simulation execution engine.
    * Receives serialized plans and executes agent workflows.
    */
-  | 'agentics-simulation-engine'
+  | 'agentics-simulation-runner'
   /**
    * ERP system adapters.
    * Handle data normalization, transformation, and state mutations.
@@ -444,7 +444,7 @@ export const PROHIBITED_PLANNER_OPERATIONS: readonly ProhibitedOperation[] = [
 export const DEFAULT_DELEGATED_OPERATIONS: readonly DelegatedOperation[] = [
   {
     operation: 'EXECUTE_SIMULATION',
-    delegatedTo: 'agentics-simulation-engine',
+    delegatedTo: 'agentics-simulation-runner',
     handoffContract: 'SimulationPlan',
     rationale:
       'Execution requires runtime agent orchestration, state management, ' +
@@ -468,7 +468,7 @@ export const DEFAULT_DELEGATED_OPERATIONS: readonly DelegatedOperation[] = [
   },
   {
     operation: 'CALL_EXTERNAL_APIS',
-    delegatedTo: 'agentics-simulation-engine',
+    delegatedTo: 'agentics-simulation-runner',
     handoffContract: 'IntegrationSpec',
     rationale:
       'API calls during planning would introduce non-determinism. ' +

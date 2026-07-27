@@ -42,7 +42,7 @@ describe('Contract Validator', () => {
           intent: 'Optimize warehouse operations',
           config: {
             targetEngine: {
-              engine: 'agentics-simulation-engine',
+              engine: 'agentics-simulation-runner',
               versionConstraint: '^1.0.0',
               requiredCapabilities: ['parallel-execution'],
             },
@@ -189,7 +189,7 @@ describe('Contract Validator', () => {
           intent: 'Test intent',
           config: {
             targetEngine: {
-              engine: 'agentics-simulation-engine',
+              engine: 'agentics-simulation-runner',
               // missing versionConstraint - should be accepted for CLI compatibility
             },
           },
@@ -475,7 +475,7 @@ describe('Contract Validator', () => {
         intent: 'Test intent',
         config: {
           targetEngine: {
-            engine: 'agentics-simulation-engine',
+            engine: 'agentics-simulation-runner',
             versionConstraint: '^1.0.0',
           },
         },
@@ -488,9 +488,70 @@ describe('Contract Validator', () => {
       const validated = parseAndValidateRequest(request);
 
       expect(validated.config).toBeDefined();
-      expect(validated.config!.targetEngine!.engine).toBe('agentics-simulation-engine');
+      expect(validated.config!.targetEngine!.engine).toBe('agentics-simulation-runner');
       expect(validated.scenario).toBeDefined();
       expect(validated.scenario!.name).toBe('Test Scenario');
+    });
+  });
+
+  describe('target engine retarget (ADR-0001)', () => {
+    const requestWithEngine = (engine: string) => ({
+      intent: 'Test intent',
+      config: {
+        targetEngine: {
+          engine,
+          versionConstraint: '^1.0.0',
+        },
+      },
+    });
+
+    let warnings: string[];
+    let originalWarn: typeof console.warn;
+
+    beforeEach(() => {
+      warnings = [];
+      originalWarn = console.warn;
+      console.warn = (...args: unknown[]) => {
+        warnings.push(args.map(String).join(' '));
+      };
+    });
+
+    afterEach(() => {
+      console.warn = originalWarn;
+    });
+
+    it('should accept agentics-simulation-runner without a deprecation warning', () => {
+      const result = validatePlanningRequest(
+        requestWithEngine('agentics-simulation-runner')
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(warnings).toHaveLength(0);
+    });
+
+    it('should accept agentics-simulation-engine during the grace window but warn', () => {
+      const result = validatePlanningRequest(
+        requestWithEngine('agentics-simulation-engine')
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain('agentics-simulation-engine');
+      expect(warnings[0]).toContain('deprecated');
+      expect(warnings[0]).toContain('agentics-simulation-runner');
+    });
+
+    it('should reject any other engine value', () => {
+      const result = validatePlanningRequest(
+        requestWithEngine('agentics-simulation-orchestrator')
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.path.includes('targetEngine/engine'))).toBe(true);
+      expect(result.errors[0]!.message).toContain('agentics-simulation-runner');
+      expect(warnings).toHaveLength(0);
     });
   });
 

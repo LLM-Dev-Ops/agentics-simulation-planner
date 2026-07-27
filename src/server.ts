@@ -165,7 +165,7 @@ function generateDefaultSteps(
     {
       step_id: 'step-1',
       name: 'Initialize simulation environment',
-      service: 'agentics-simulation-engine',
+      service: 'agentics-simulation-runner',
       action: 'setup',
       config: params ?? {},
       dependencies: [],

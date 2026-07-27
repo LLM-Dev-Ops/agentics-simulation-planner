@@ -41,6 +41,12 @@ const NAMESPACE_REGEX = /^[a-zA-Z0-9_-]+$/;
 /** Semver constraint pattern */
 const SEMVER_CONSTRAINT_REGEX = /^[\^~>=<|\s0-9.x*-]+$/;
 
+/** The only target engine a plan may declare. */
+const TARGET_ENGINE = 'agentics-simulation-runner';
+
+/** Pre-ADR-0001 target engine, accepted for one release. See validateTargetEngine. */
+const DEPRECATED_TARGET_ENGINE = 'agentics-simulation-engine';
+
 /** Valid ERP domains */
 const VALID_DOMAINS = new Set([
   'FINANCE',
@@ -265,12 +271,20 @@ function validateTargetEngine(
   }
 
   // Validate engine if present
-  if (engineObj['engine'] !== 'agentics-simulation-engine') {
+  if (engineObj['engine'] === DEPRECATED_TARGET_ENGINE) {
+    // Grace window (ADR-0001): plans persisted before the retarget still carry the
+    // phantom engine literal. Remove this branch — and DEPRECATED_TARGET_ENGINE —
+    // in the next release.
+    console.warn(
+      `[contracts] targetEngine.engine "${DEPRECATED_TARGET_ENGINE}" is deprecated ` +
+        `and will be rejected in the next release; use "${TARGET_ENGINE}".`
+    );
+  } else if (engineObj['engine'] !== TARGET_ENGINE) {
     errors.push({
       path: `${path}/engine`,
-      message: 'Field "engine" must be "agentics-simulation-engine"',
+      message: `Field "engine" must be "${TARGET_ENGINE}"`,
       keyword: 'enum',
-      params: { allowedValues: ['agentics-simulation-engine'] },
+      params: { allowedValues: [TARGET_ENGINE] },
     });
   }
 

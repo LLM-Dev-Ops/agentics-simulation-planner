@@ -5,7 +5,7 @@
  * IMPORTANT: The SimulationPlan is a PLANNING artifact that describes
  * WHAT should be simulated. It does NOT perform execution, ROI calculations,
  * or ERP data normalization. Those are the responsibility of:
- * - agentics-simulation-engine: Execution
+ * - agentics-simulation-runner: Execution
  * - analytics-service: ROI calculations
  * - erp-adapter: ERP data normalization
  */
@@ -261,9 +261,9 @@ export interface AuditEntry {
 export interface TargetEngineSpec {
   /**
    * The target simulation engine identifier.
-   * Currently only 'agentics-simulation-engine' is supported.
+   * Currently only 'agentics-simulation-runner' is supported.
    */
-  readonly engine: 'agentics-simulation-engine';
+  readonly engine: 'agentics-simulation-runner';
 
   /**
    * Semantic version constraint for engine compatibility.
@@ -288,7 +288,7 @@ export interface TargetEngineSpec {
  * - Policy inputs and constraints
  * - Expected output artifacts
  *
- * The plan is consumed by agentics-simulation-engine for execution.
+ * The plan is consumed by agentics-simulation-runner for execution.
  * The planner NEVER executes simulations, calculates ROI, or normalizes ERP data.
  */
 export interface SimulationPlan {

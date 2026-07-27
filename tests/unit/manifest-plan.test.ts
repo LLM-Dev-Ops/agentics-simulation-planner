@@ -114,7 +114,7 @@ async function setupTestHandlers() {
           version: body.manifest_ref.version ?? '1.0.0',
           intent: body.intent,
           steps: [
-            { step_id: 'step-1', name: 'Initialize simulation environment', service: 'agentics-simulation-engine', action: 'setup', config: body.params ?? {}, dependencies: [] },
+            { step_id: 'step-1', name: 'Initialize simulation environment', service: 'agentics-simulation-runner', action: 'setup', config: body.params ?? {}, dependencies: [] },
             { step_id: 'step-2', name: 'Execute simulation scenarios', service: 'agentics-simulation-runner', action: 'run', config: {}, dependencies: ['step-1'] },
             { step_id: 'step-3', name: 'Collect and index results', service: 'agentics-results-index', action: 'store', config: {}, dependencies: ['step-2'] },
           ],
@@ -179,7 +179,7 @@ describe('POST /v1/plans (manifest_ref)', () => {
     // Steps structure
     const [step1, step2, step3] = body.plan.steps;
     expect(step1.step_id).toBe('step-1');
-    expect(step1.service).toBe('agentics-simulation-engine');
+    expect(step1.service).toBe('agentics-simulation-runner');
     expect(step1.action).toBe('setup');
     expect(step1.dependencies).toEqual([]);
 
