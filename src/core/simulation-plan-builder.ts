@@ -2,7 +2,7 @@
  * SimulationPlanBuilder
  *
  * A fluent builder for constructing SimulationPlan instances that target
- * the agentics-simulation-engine. This builder enforces planner boundaries
+ * the agentics-simulation-runner. This builder enforces planner boundaries
  * and ensures plans are well-formed before serialization.
  *
  * ## Key Principles
@@ -16,9 +16,9 @@
  *
  * ```typescript
  * const plan = SimulationPlanBuilder.create()
- *   .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+ *   .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
  *   .withScope({
- *     targetEngine: 'agentics-simulation-engine',
+ *     targetEngine: 'agentics-simulation-runner',
  *     engineVersion: '>=1.0.0',
  *     scopeType: 'FULL',
  *     includedDomains: ['FINANCE', 'SUPPLY_CHAIN'],
@@ -217,12 +217,12 @@ export class SimulationPlanBuilder {
   /**
    * Set the target execution engine.
    *
-   * @param engine - Must be 'agentics-simulation-engine'
+   * @param engine - Must be 'agentics-simulation-runner'
    * @param versionConstraint - Semantic version constraint
    * @param requiredCapabilities - Engine capabilities required
    */
   withTargetEngine(
-    engine: 'agentics-simulation-engine',
+    engine: 'agentics-simulation-runner',
     versionConstraint: string,
     requiredCapabilities?: readonly string[]
   ): SimulationPlanBuilder {

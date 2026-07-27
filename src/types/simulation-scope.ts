@@ -2,7 +2,7 @@
  * Simulation Scope Type Definitions
  *
  * Defines the scope and boundaries for simulations targeting the
- * agentics-simulation-engine. These types establish what domains,
+ * agentics-simulation-runner. These types establish what domains,
  * capabilities, time horizons, and data volumes are in scope for
  * a given simulation plan.
  *
@@ -84,7 +84,7 @@ export interface DataVolumeBounds {
  * SimulationScope
  *
  * Defines the scope and boundaries of a simulation targeting
- * the agentics-simulation-engine. This interface establishes:
+ * the agentics-simulation-runner. This interface establishes:
  * - Target engine and version compatibility
  * - Scope type (full, partial, incremental)
  * - Included ERP domains
@@ -95,7 +95,7 @@ export interface DataVolumeBounds {
  * @example
  * ```typescript
  * const scope: SimulationScope = {
- *   targetEngine: 'agentics-simulation-engine',
+ *   targetEngine: 'agentics-simulation-runner',
  *   engineVersion: '>=1.0.0 <2.0.0',
  *   scopeType: 'PARTIAL',
  *   includedDomains: ['FINANCE', 'SUPPLY_CHAIN'],
@@ -115,9 +115,9 @@ export interface DataVolumeBounds {
 export interface SimulationScope {
   /**
    * Target simulation engine identifier.
-   * Must be the literal string 'agentics-simulation-engine'.
+   * Must be the literal string 'agentics-simulation-runner'.
    */
-  readonly targetEngine: 'agentics-simulation-engine';
+  readonly targetEngine: 'agentics-simulation-runner';
 
   /**
    * Semantic version constraint for engine compatibility.

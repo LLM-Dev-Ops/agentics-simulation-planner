@@ -2,7 +2,7 @@
  * Tests for SimulationPlanBuilder
  *
  * These tests verify that the builder correctly constructs simulation plans
- * targeting the agentics-simulation-engine, with proper ERP surface dependencies,
+ * targeting the agentics-simulation-runner, with proper ERP surface dependencies,
  * policy inputs, and output artifact specifications.
  */
 
@@ -21,7 +21,7 @@ import { generateDeterministicId } from '../../src/utils/crypto.js';
 describe('SimulationPlanBuilder', () => {
   // Helper function to create a valid scope
   const createValidScope = (): SimulationScope => ({
-    targetEngine: 'agentics-simulation-engine',
+    targetEngine: 'agentics-simulation-runner',
     engineVersion: '>=1.0.0',
     scopeType: 'FULL',
     includedDomains: ['FINANCE', 'SUPPLY_CHAIN'],
@@ -80,22 +80,22 @@ describe('SimulationPlanBuilder', () => {
   });
 
   describe('withTargetEngine()', () => {
-    it('should set the target engine to agentics-simulation-engine', () => {
+    it('should set the target engine to agentics-simulation-runner', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
         .build();
 
       expect(result.success).toBe(true);
-      expect(result.plan?.targetEngine?.engine).toBe('agentics-simulation-engine');
+      expect(result.plan?.targetEngine?.engine).toBe('agentics-simulation-runner');
       expect(result.plan?.targetEngine?.versionConstraint).toBe('>=1.0.0');
     });
 
     it('should include required capabilities when specified', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '^1.0.0', ['multi-agent', 'erp-integration'])
+        .withTargetEngine('agentics-simulation-runner', '^1.0.0', ['multi-agent', 'erp-integration'])
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -104,13 +104,34 @@ describe('SimulationPlanBuilder', () => {
       expect(result.success).toBe(true);
       expect(result.plan?.targetEngine?.requiredCapabilities).toEqual(['multi-agent', 'erp-integration']);
     });
+
+    // ADR-0001: the pre-retarget engine literal is gone from the type system, so a
+    // scope still carrying it no longer agrees with the plan's target engine.
+    it('should reject a scope still targeting the pre-retarget engine', () => {
+      const legacyScope = {
+        ...createValidScope(),
+        targetEngine: 'agentics-simulation-engine',
+      } as unknown as SimulationScope;
+
+      const result = SimulationPlanBuilder.create()
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
+        .withScope(legacyScope)
+        .withObjective(createValidObjective())
+        .withExecution(createValidExecution())
+        .build();
+
+      expect(result.success).toBe(false);
+      expect(
+        result.errors.some(e => e.includes('does not match'))
+      ).toBe(true);
+    });
   });
 
   describe('withScope()', () => {
     it('should set simulation scope and validate it', () => {
       const scope = createValidScope();
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(scope)
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -129,7 +150,7 @@ describe('SimulationPlanBuilder', () => {
       };
 
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(highComplexityScope)
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -141,7 +162,7 @@ describe('SimulationPlanBuilder', () => {
 
     it('should generate a scope hash', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -169,7 +190,7 @@ describe('SimulationPlanBuilder', () => {
       };
 
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -189,7 +210,7 @@ describe('SimulationPlanBuilder', () => {
       };
 
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope()) // Only includes FINANCE and SUPPLY_CHAIN
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -221,7 +242,7 @@ describe('SimulationPlanBuilder', () => {
       };
 
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -253,7 +274,7 @@ describe('SimulationPlanBuilder', () => {
       };
 
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -301,7 +322,7 @@ describe('SimulationPlanBuilder', () => {
       };
 
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -328,7 +349,7 @@ describe('SimulationPlanBuilder', () => {
 
     it('should fail without scope', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
         .build();
@@ -339,7 +360,7 @@ describe('SimulationPlanBuilder', () => {
 
     it('should fail without objectives', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withExecution(createValidExecution())
         .build();
@@ -350,7 +371,7 @@ describe('SimulationPlanBuilder', () => {
 
     it('should fail without execution config', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .build();
@@ -361,7 +382,7 @@ describe('SimulationPlanBuilder', () => {
 
     it('should warn without constraints', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -373,7 +394,7 @@ describe('SimulationPlanBuilder', () => {
 
     it('should generate a content hash', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -386,7 +407,7 @@ describe('SimulationPlanBuilder', () => {
 
     it('should set schema version to 2.1.0', () => {
       const result = SimulationPlanBuilder.create()
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0')
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0')
         .withScope(createValidScope())
         .withObjective(createValidObjective())
         .withExecution(createValidExecution())
@@ -400,7 +421,7 @@ describe('SimulationPlanBuilder', () => {
   describe('immutability', () => {
     it('should return new builder instances (immutable pattern)', () => {
       const builder1 = SimulationPlanBuilder.create();
-      const builder2 = builder1.withTargetEngine('agentics-simulation-engine', '>=1.0.0');
+      const builder2 = builder1.withTargetEngine('agentics-simulation-runner', '>=1.0.0');
       const builder3 = builder2.withScope(createValidScope());
 
       expect(builder1).not.toBe(builder2);
@@ -412,7 +433,7 @@ describe('SimulationPlanBuilder', () => {
     it('should create a builder from an existing partial plan', () => {
       const partialPlan = {
         targetEngine: {
-          engine: 'agentics-simulation-engine' as const,
+          engine: 'agentics-simulation-runner' as const,
           versionConstraint: '>=1.0.0',
         },
         objectives: [createValidObjective()],
@@ -426,9 +447,9 @@ describe('SimulationPlanBuilder', () => {
   describe('full plan construction', () => {
     it('should build a complete simulation plan with all features', () => {
       const result = SimulationPlanBuilder.create({ seed: 'deterministic-test' })
-        .withTargetEngine('agentics-simulation-engine', '>=1.0.0', ['multi-agent'])
+        .withTargetEngine('agentics-simulation-runner', '>=1.0.0', ['multi-agent'])
         .withScope({
-          targetEngine: 'agentics-simulation-engine',
+          targetEngine: 'agentics-simulation-runner',
           engineVersion: '>=1.0.0',
           scopeType: 'PARTIAL',
           includedDomains: ['FINANCE', 'SUPPLY_CHAIN'],
@@ -569,7 +590,7 @@ describe('SimulationPlanBuilder', () => {
 
       // Verify structure
       expect(plan.version).toBe('2.1.0');
-      expect(plan.targetEngine?.engine).toBe('agentics-simulation-engine');
+      expect(plan.targetEngine?.engine).toBe('agentics-simulation-runner');
       expect(plan.scope?.scopeType).toBe('PARTIAL');
       expect(plan.scope?.includedDomains).toContain('FINANCE');
       expect(plan.objectives).toHaveLength(1);

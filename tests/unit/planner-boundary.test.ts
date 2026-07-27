@@ -121,8 +121,8 @@ describe('PlannerBoundary', () => {
   });
 
   describe('getDelegationTarget()', () => {
-    it('should return agentics-simulation-engine for execution', () => {
-      expect(getDelegationTarget('EXECUTE_SIMULATION')).toBe('agentics-simulation-engine');
+    it('should return agentics-simulation-runner for execution', () => {
+      expect(getDelegationTarget('EXECUTE_SIMULATION')).toBe('agentics-simulation-runner');
     });
 
     it('should return analytics-service for ROI calculation', () => {
@@ -149,8 +149,8 @@ describe('PlannerBoundary', () => {
       expect(getDelegationTarget('SCHEDULE_JOBS')).toBe('orchestration-layer');
     });
 
-    it('should return agentics-simulation-engine for external API calls', () => {
-      expect(getDelegationTarget('CALL_EXTERNAL_APIS')).toBe('agentics-simulation-engine');
+    it('should return agentics-simulation-runner for external API calls', () => {
+      expect(getDelegationTarget('CALL_EXTERNAL_APIS')).toBe('agentics-simulation-runner');
     });
   });
 
@@ -183,8 +183,8 @@ describe('PlannerBoundary', () => {
       expect(violation.violationType).toBe('EXECUTE_SIMULATION');
       expect(violation.detectedAt).toBe('SERIALIZATION');
       expect(violation.severity).toBe('FATAL');
-      expect(violation.correctHandler).toBe('agentics-simulation-engine');
-      expect(violation.remediation).toContain('agentics-simulation-engine');
+      expect(violation.correctHandler).toBe('agentics-simulation-runner');
+      expect(violation.remediation).toContain('agentics-simulation-runner');
       expect(violation.remediation).toContain('SimulationPlan');
     });
 
@@ -265,7 +265,7 @@ describe('PlannerBoundary', () => {
 
     it('should delegate to valid systems', () => {
       const validTargets = [
-        'agentics-simulation-engine',
+        'agentics-simulation-runner',
         'erp-adapter',
         'analytics-service',
         'orchestration-layer',

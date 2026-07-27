@@ -36,7 +36,7 @@ export * from './ruvvector.js';
 // Error types
 export * from './errors.js';
 
-// Simulation Scope types (targeting agentics-simulation-engine)
+// Simulation Scope types (targeting agentics-simulation-runner)
 export * from './simulation-scope.js';
 
 // Policy Input types (simulation configuration policies)

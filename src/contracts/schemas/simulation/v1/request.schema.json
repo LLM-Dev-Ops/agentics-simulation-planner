@@ -58,7 +58,7 @@
           "properties": {
             "engine": {
               "type": "string",
-              "enum": ["agentics-simulation-engine"],
+              "enum": ["agentics-simulation-runner"],
               "description": "Target simulation engine identifier"
             },
             "versionConstraint": {
